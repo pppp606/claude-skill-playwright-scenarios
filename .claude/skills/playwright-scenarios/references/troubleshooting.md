@@ -12,20 +12,26 @@ Scripts may break due to UI changes, URL changes, or form structure changes.
 Read the playwright-cli error message to determine the cause.
 
 ```bash
-# Inspect the current DOM state (check for element ID changes)
+# Take a DOM snapshot to inspect the current page structure
 playwright-cli snapshot
 
 # Visually confirm the current page
 playwright-cli screenshot --filename=/tmp/playwright-scenarios/debug.png
+
+# Get the raw HTML for deeper inspection
+playwright-cli run-code "async page => { return await page.content() }"
+
+# Check the current URL (confirm you're on the right page)
+playwright-cli run-code "async page => { return page.url() }"
 ```
 
 ### 2. Locate and fix the issue
 
-Update the script's element references or URLs to match the current page state.
+Update the selectors or URLs in the script to match the current page state.
 
 ```bash
 # Edit the script and annotate each changed line:
-# Updated: <reason (e.g. login button ID changed from e23 to e31)>
+# Updated: <reason (e.g. selector changed from input[name=email] to input[type=email])>
 ```
 
 ### 3. Re-run and confirm
@@ -40,53 +46,69 @@ If successful, update the description in `scenarios/README.md` if needed.
 
 ## Common failure patterns and fixes
 
-### Element ID changed (`fill e19` → `fill e23`)
+### Selector no longer matches
 
-**Symptom:** Error like `Error: Element not found: e19`
+**Symptom:** `Error: locator.fill: Error: strict mode violation` or timeout waiting for element
 
 **Fix:**
 1. Run `playwright-cli snapshot` to inspect the current DOM
-2. Identify the new ID for the target field
-3. Update the `eXX` references in the script
+2. Identify the new selector for the target element
+3. Update the selector in the `run-code` block
 
 ```bash
-# playwright-cli fill e19 "$USERNAME"  # Updated: ID changed e19→e23
-playwright-cli fill e23 "$USERNAME"
+# playwright-cli run-code "async page => { await page.fill('input[name=email]', ...) }"
+# Updated: attribute changed from name=email to type=email
+playwright-cli run-code "async page => { await page.fill('input[type=email]', ...) }"
 ```
 
 ### URL changed (routing change)
 
-**Symptom:** Page returns 404 or redirects unexpectedly, causing actions to fail
+**Symptom:** `waitForURL` times out, or page navigates to an unexpected URL
 
 **Fix:**
-1. Open the base URL and check the actual current URL
-2. Update the URL path in the script
+1. Check the actual URL after the action: `playwright-cli run-code "async page => { return page.url() }"`
+2. Update the URL path or `waitForURL` pattern in the script
 
 ```bash
-# playwright-cli open "$BASE_URL/login"  # Updated: /login → /auth/login
-playwright-cli open "$BASE_URL/auth/login"
+# await page.waitForURL('**/dashboard');
+# Updated: dashboard moved to /home
+# await page.waitForURL('**/home');
 ```
 
 ### Form structure changed (fields added or removed)
 
-**Symptom:** Submission fails or shows validation errors
+**Symptom:** Form submits with validation errors, or a required field is missing
 
 **Fix:**
-1. Run `playwright-cli snapshot` to inspect all `input` elements
-2. Add inputs for new fields; remove actions for deleted fields
+1. Run `playwright-cli snapshot` to see all current form fields
+2. Add `page.fill()` for new required fields; remove calls for deleted fields
 
 ### Login flow changed (e.g. 2FA added)
 
-**Symptom:** An additional step appears after login before the session can be saved
+**Symptom:** `waitForURL` times out after clicking submit — an extra step appeared
 
 **Fix:**
-1. Run `playwright-cli snapshot` to inspect the new UI
-2. Walk through the new flow manually and capture the steps
-3. Add the new steps to the script
+1. Run `playwright-cli snapshot` after clicking submit to see the new UI
+2. Add the new step to the `run-code` block
+
+```bash
+playwright-cli run-code "async page => {
+  // ... existing login steps ...
+  await page.click('button[type=submit]');
+
+  // Updated: 2FA step added
+  await page.waitForSelector('input[name=otp]');
+  await page.fill('input[name=otp]', '${OTP_CODE}');
+  await page.click('button[type=submit]');
+
+  await page.waitForURL('**/', { timeout: 10000 });
+  await page.context().storageState({ path: '${SESSION_FILE}' });
+}"
+```
 
 ### Session expired
 
-**Symptom:** Accessing an authenticated page redirects to the login page
+**Symptom:** Accessing a protected page redirects to the login page
 
 **Fix:** Re-run the login scenario to refresh the session:
 
@@ -99,15 +121,30 @@ bash .claude/skills/playwright-scenarios/scenarios/login.sh "$BASE_URL" "$SESSIO
 ## Useful debugging commands
 
 ```bash
-# Take a DOM snapshot
+# Take a DOM snapshot (visual overview of the page structure)
 playwright-cli snapshot
 
 # Take a screenshot
 playwright-cli screenshot --filename=/tmp/playwright-scenarios/debug.png
 
-# Check the current URL and page title
-playwright-cli eval "location.href"
-playwright-cli eval "document.title"
+# Get the raw HTML
+playwright-cli run-code "async page => { return await page.content() }"
+
+# Check the current URL and title
+playwright-cli run-code "async page => { return { url: page.url(), title: await page.title() } }"
+
+# List all input fields on the page
+playwright-cli run-code "async page => {
+  return await page.evaluate(() =>
+    Array.from(document.querySelectorAll('input, select, textarea')).map(el => ({
+      tag: el.tagName,
+      type: el.type,
+      name: el.name,
+      id: el.id,
+      placeholder: el.placeholder
+    }))
+  );
+}"
 
 # Check console errors
 playwright-cli console

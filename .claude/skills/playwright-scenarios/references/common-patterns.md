@@ -1,45 +1,55 @@
 # Common Patterns
 
-Common browser automation patterns with playwright-cli.
+Common browser automation patterns using `playwright-cli run-code`.
 Use these as a reference when writing new scenario scripts.
 
-## Open a page and inspect the snapshot
+All interactions use stable CSS selectors or Playwright locators — not `eXX` element IDs.
 
-Use this to discover element reference IDs (`eXX`) before interacting.
+## Open a page and inspect the DOM
 
 ```bash
 playwright-cli open "$BASE_URL/path"
 playwright-cli snapshot
-# → check the eXX numbers in the snapshot before acting
+# → use the snapshot to identify selectors, then write run-code
 ```
 
-## Login (fill form → click → save session)
+## Login (fill form → submit → save session)
 
 ```bash
-playwright-cli open "$BASE_URL/login"
-playwright-cli snapshot  # confirm eXX numbers for the form fields
+playwright-cli open "$BASE_URL"
 
-playwright-cli fill e1 "$USERNAME"   # username field
-playwright-cli fill e2 "$PASSWORD"   # password field
-playwright-cli click e3              # login button
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/login');
 
-playwright-cli state-save "$SESSION_FILE"
-echo "Session saved: $SESSION_FILE"
+  await page.fill('input[name=email]', '${USERNAME}');
+  await page.fill('input[name=password]', '${PASSWORD}');
+  await page.click('button[type=submit]');
+
+  // Wait for redirect after successful login
+  await page.waitForURL('**/', { timeout: 10000 });
+
+  // Save session (cookies + localStorage + sessionStorage)
+  await page.context().storageState({ path: '${SESSION_FILE}' });
+  return 'Login successful';
+}"
 ```
 
 ## Form submission
 
 ```bash
-playwright-cli open "$BASE_URL/contact"
-playwright-cli snapshot
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/contact');
 
-playwright-cli fill e1 "John Doe"             # text input
-playwright-cli fill e2 "john@example.com"     # email input
-playwright-cli select e3 "inquiry"            # select box
-playwright-cli check e4                       # checkbox
-playwright-cli click e5                       # submit button
+  await page.fill('input[name=name]', 'John Doe');
+  await page.fill('input[name=email]', 'john@example.com');
+  await page.selectOption('select[name=category]', 'inquiry');
+  await page.check('input[name=agree]');
+  await page.click('button[type=submit]');
 
-playwright-cli snapshot  # confirm state after submission
+  // Wait for confirmation
+  await page.waitForSelector('.success-message');
+}"
+
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/form-submitted.png"
 ```
 
@@ -47,7 +57,12 @@ playwright-cli screenshot --filename="$SCREENSHOT_DIR/form-submitted.png"
 
 ```bash
 playwright-cli open "$BASE_URL"
-playwright-cli goto "$BASE_URL/dashboard"
+
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/dashboard');
+  await page.waitForLoadState('networkidle');
+}"
+
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/dashboard.png"
 ```
 
@@ -56,48 +71,91 @@ playwright-cli screenshot --filename="$SCREENSHOT_DIR/dashboard.png"
 ```bash
 playwright-cli open "$BASE_URL"
 playwright-cli state-load "$SESSION_FILE"
-playwright-cli goto "$BASE_URL/protected-page"
+
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/protected-page');
+  await page.waitForLoadState('networkidle');
+}"
+
 playwright-cli snapshot
 ```
 
 ## Get element text
 
 ```bash
-playwright-cli open "$BASE_URL/page"
-playwright-cli snapshot  # find the eXX number
-playwright-cli eval "el => el.textContent" e5
+playwright-cli run-code "async page => {
+  const text = await page.locator('h1').textContent();
+  return text;
+}"
 ```
 
-## Check the page title
+## Check the page title or URL
 
 ```bash
-playwright-cli open "$BASE_URL"
-playwright-cli eval "document.title"
+playwright-cli run-code "async page => {
+  return { title: await page.title(), url: page.url() };
+}"
 ```
 
 ## Handle a confirmation dialog
 
 ```bash
-playwright-cli click e7          # button that opens the dialog
-playwright-cli dialog-accept     # click OK
-# or
-playwright-cli dialog-dismiss    # click Cancel
+playwright-cli run-code "async page => {
+  page.once('dialog', dialog => dialog.accept());
+  await page.click('button.delete');
+  await page.waitForSelector('.deleted-confirmation');
+}"
 ```
 
 ## Search and click a result
 
 ```bash
-playwright-cli open "$BASE_URL/search"
-playwright-cli fill e1 "$QUERY"
-playwright-cli press Enter
-playwright-cli snapshot  # find eXX number for the first result
-playwright-cli click e10
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/search');
+  await page.fill('input[name=q]', '${QUERY}');
+  await page.press('input[name=q]', 'Enter');
+  await page.waitForSelector('.search-results');
+
+  // Click the first result
+  await page.locator('.search-result-item').first().click();
+  await page.waitForLoadState('networkidle');
+}"
+
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/search-result.png"
 ```
 
 ## Scroll
 
 ```bash
-playwright-cli mousewheel 0 500   # scroll down
-playwright-cli mousewheel 0 -500  # scroll up
+playwright-cli run-code "async page => {
+  await page.evaluate(() => window.scrollBy(0, 500));   // scroll down
+  await page.evaluate(() => window.scrollBy(0, -500));  // scroll up
+}"
+```
+
+## Wait for an element to appear or disappear
+
+```bash
+playwright-cli run-code "async page => {
+  await page.waitForSelector('.loading', { state: 'hidden' });  // wait until hidden
+  await page.waitForSelector('.content', { state: 'visible' }); // wait until visible
+}"
+```
+
+## Using role-based or text-based selectors (more readable)
+
+```bash
+playwright-cli run-code "async page => {
+  // By role
+  await page.getByRole('button', { name: 'Log in' }).click();
+
+  // By label
+  await page.getByLabel('Email').fill('user@example.com');
+
+  // By placeholder
+  await page.getByPlaceholder('Search...').fill('query');
+
+  // By text
+  await page.getByText('Submit').click();
+}"
 ```

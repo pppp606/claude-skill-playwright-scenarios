@@ -4,10 +4,7 @@
 # Sample: Log in and save the session
 #
 # This is a sample implementation. To use it in your project, copy it to
-# scenarios/ and adjust the element IDs and URL to match your application.
-#
-# Note: playwright-cli element IDs (e1, e2, etc.) change with each page render.
-#       Always run `playwright-cli snapshot` to confirm the current IDs before use.
+# scenarios/ and adjust the selectors and URL path to match your application.
 #
 # Usage:
 #   bash examples/login.sh <BASE_URL> [SESSION_FILE] [USERNAME] [PASSWORD]
@@ -36,34 +33,31 @@ echo "=== Login scenario (sample) ==="
 echo "BASE_URL: $BASE_URL"
 echo "SESSION_FILE: $SESSION_FILE"
 
-# Open the login page
-# Update the URL path to match your project
-playwright-cli open "$BASE_URL/login"
-playwright-cli snapshot
+playwright-cli open "$BASE_URL"
 
-# --- Project-specific section ---
-# Check the snapshot output to find the actual eXX numbers for your project.
-#
-# Example (IDs vary by project):
-#   playwright-cli fill e1 "$USERNAME"   # username/email field
-#   playwright-cli fill e2 "$PASSWORD"   # password field
-#   playwright-cli click e3              # login button
-#
-# If USERNAME or PASSWORD are not provided, the fields are left empty.
-# Set project-specific defaults here if needed.
-if [ -n "$USERNAME" ]; then
-  playwright-cli fill e1 "$USERNAME"
-fi
-if [ -n "$PASSWORD" ]; then
-  playwright-cli fill e2 "$PASSWORD"
-fi
-playwright-cli click e3
-# --- End project-specific section ---
+playwright-cli run-code "async page => {
+  // Navigate to the login page — adjust the path to match your project
+  await page.goto('${BASE_URL}/login');
 
-# Save the session
-playwright-cli state-save "$SESSION_FILE"
+  // Fill credentials using stable CSS selectors (not eXX element IDs)
+  // Adjust these selectors to match your project's login form.
+  // Tips: run \`playwright-cli snapshot\` first to inspect the form structure.
+  //
+  // Alternative selector styles:
+  //   await page.getByLabel('Email').fill('${USERNAME}');
+  //   await page.getByRole('button', { name: 'Log in' }).click();
+  if ('${USERNAME}') await page.fill('input[name=email]', '${USERNAME}');
+  if ('${PASSWORD}') await page.fill('input[name=password]', '${PASSWORD}');
+  await page.click('button[type=submit]');
 
-# Take a screenshot of the post-login page
+  // Wait for successful login — adjust the URL pattern to match your project
+  await page.waitForURL('**/', { timeout: 10000 });
+
+  // Save session (cookies + localStorage + sessionStorage)
+  await page.context().storageState({ path: '${SESSION_FILE}' });
+  return 'Login successful';
+}"
+
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/login-result.png"
 
 echo ""

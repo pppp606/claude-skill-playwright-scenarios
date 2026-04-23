@@ -63,6 +63,9 @@ Execute the task with playwright-cli while simultaneously creating a script:
 - Accept `SESSION_FILE` as the second argument (optional)
 - Start scripts with `#!/bin/bash` and a usage comment
 - Use `set -e` to exit immediately on error
+- **Do not use `playwright-cli fill/click/select` with `eXX` element IDs** — they change on every render
+- **Use `playwright-cli run-code "async page => { ... }"` for all browser interactions** — target elements with CSS selectors, roles, or text
+- Save sessions with `page.context().storageState({ path: '...' })` inside `run-code`
 
 Details: [Scenario Writing Guide](references/scenario-guide.md)
 
