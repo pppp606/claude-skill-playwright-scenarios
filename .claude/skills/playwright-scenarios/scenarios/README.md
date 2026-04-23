@@ -1,28 +1,28 @@
-# シナリオ一覧
+# Scenarios
 
-このディレクトリに蓄積されたE2Eシナリオスクリプトの一覧です。
-新しいシナリオを追加したとき、このテーブルを更新してください。
+A list of accumulated E2E scenario scripts in this directory.
+Update this table whenever you add a new scenario.
 
-## シナリオ
+## Scenario list
 
-| ファイル | 説明 | 引数 |
-|---------|------|------|
-| examples/login.sh | ログインしてセッション保存（サンプル実装） | BASE_URL [SESSION_FILE] |
+| File | Description | Arguments |
+|------|-------------|-----------|
+| examples/login.sh | Log in and save session (sample implementation) | BASE_URL [SESSION_FILE] |
 
-## 新しいシナリオを追加するとき
+## Adding a new scenario
 
-1. `scenarios/<動詞>-<対象>.sh` を作成する（[シナリオの書き方ガイド](../references/scenario-guide.md)参照）
-2. `chmod +x scenarios/<名前>.sh` で実行可能にする
-3. このテーブルに行を追加する
+1. Create `scenarios/<verb>-<target>.sh` (see [Scenario Writing Guide](../references/scenario-guide.md))
+2. Make it executable: `chmod +x scenarios/<name>.sh`
+3. Add a row to the table above
 
-## セッションを使うシナリオの連携
+## Chaining scenarios with a session
 
-認証が必要なシナリオは、先にログインシナリオでセッションを保存してから実行します：
+For scenarios that require authentication, save the session with a login scenario first:
 
 ```bash
-# 1. ログインしてセッション保存
+# 1. Log in and save the session
 bash .claude/skills/playwright-scenarios/scenarios/login.sh http://localhost:3000
 
-# 2. 認証済みセッションで他のシナリオを実行
-bash .claude/skills/playwright-scenarios/scenarios/<名前>.sh http://localhost:3000
+# 2. Run another scenario using the saved session
+bash .claude/skills/playwright-scenarios/scenarios/<name>.sh http://localhost:3000
 ```

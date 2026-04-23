@@ -1,30 +1,30 @@
-# セッション管理
+# Session Management
 
-playwright-cli はログイン状態などのブラウザセッションをファイルに保存・復元できます。
+playwright-cli can save and restore browser sessions (login state, cookies, etc.) to a file.
 
-## セッションの保存
+## Saving a session
 
 ```bash
-# デフォルトパスに保存
+# Save to the default path
 playwright-cli state-save
 
-# パスを指定して保存
+# Save to a specific path
 playwright-cli state-save /tmp/playwright-scenarios/session.json
 ```
 
-保存されるもの: Cookie、LocalStorage、SessionStorage
+What gets saved: cookies, LocalStorage, SessionStorage
 
-## セッションの復元
+## Restoring a session
 
 ```bash
 playwright-cli state-load /tmp/playwright-scenarios/session.json
 ```
 
-復元後は認証済み状態でページを操作できます。
+After restoring, you can interact with pages as an authenticated user.
 
-## シナリオでの使い方
+## Usage in scenarios
 
-### ログインしてセッション保存（login シナリオ）
+### Login and save session (login scenario)
 
 ```bash
 playwright-cli open "$BASE_URL/login"
@@ -32,10 +32,10 @@ playwright-cli fill e1 "$USERNAME"
 playwright-cli fill e2 "$PASSWORD"
 playwright-cli click e3
 playwright-cli state-save "$SESSION_FILE"
-echo "セッション保存: $SESSION_FILE"
+echo "Session saved: $SESSION_FILE"
 ```
 
-### 保存済みセッションを使って操作（他のシナリオ）
+### Use a saved session in another scenario
 
 ```bash
 playwright-cli open "$BASE_URL"
@@ -44,16 +44,17 @@ playwright-cli goto "$BASE_URL/dashboard"
 playwright-cli snapshot
 ```
 
-## セッションファイルのパス規則
+## Session file path convention
 
-このスキルでは以下のデフォルトパスを使用します：
+This skill uses the following default path:
 
-- デフォルト: `/tmp/playwright-scenarios/session.json`
-- プロジェクト固有: 引数 `SESSION_FILE` で上書き可能
+- Default: `/tmp/playwright-scenarios/session.json`
+- Project-specific: can be overridden via the `SESSION_FILE` argument
 
-## セッションの有効期限
+## Session expiry
 
-セッションファイルはブラウザのCookieをそのまま保存するため、サーバー側のセッション有効期限に依存します。セッション切れエラーが発生した場合はログインシナリオを再実行してください。
+Session files store browser cookies as-is, so they depend on the server-side session expiry.
+If you get an authentication error, re-run the login scenario to refresh the session:
 
 ```bash
 bash .claude/skills/playwright-scenarios/scenarios/login.sh "$BASE_URL" "$SESSION_FILE"

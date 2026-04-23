@@ -1,49 +1,49 @@
-# よく使うパターン
+# Common Patterns
 
-playwright-cli でよく使うブラウザ操作パターンをまとめます。
-スクリプト作成時の参考にしてください。
+Common browser automation patterns with playwright-cli.
+Use these as a reference when writing new scenario scripts.
 
-## ページを開いてスナップショット確認
+## Open a page and inspect the snapshot
 
-要素の参照ID（`eXX`）を確認するためのパターン。
+Use this to discover element reference IDs (`eXX`) before interacting.
 
 ```bash
 playwright-cli open "$BASE_URL/path"
 playwright-cli snapshot
-# → スナップショットで eXX の番号を確認してから操作する
+# → check the eXX numbers in the snapshot before acting
 ```
 
-## ログイン（フォーム入力 → クリック → セッション保存）
+## Login (fill form → click → save session)
 
 ```bash
 playwright-cli open "$BASE_URL/login"
-playwright-cli snapshot  # フォームの eXX 番号を確認
+playwright-cli snapshot  # confirm eXX numbers for the form fields
 
-playwright-cli fill e1 "$USERNAME"   # ユーザー名フィールド
-playwright-cli fill e2 "$PASSWORD"   # パスワードフィールド
-playwright-cli click e3              # ログインボタン
+playwright-cli fill e1 "$USERNAME"   # username field
+playwright-cli fill e2 "$PASSWORD"   # password field
+playwright-cli click e3              # login button
 
 playwright-cli state-save "$SESSION_FILE"
-echo "セッション保存: $SESSION_FILE"
+echo "Session saved: $SESSION_FILE"
 ```
 
-## フォーム送信
+## Form submission
 
 ```bash
 playwright-cli open "$BASE_URL/contact"
 playwright-cli snapshot
 
-playwright-cli fill e1 "山田太郎"          # テキスト入力
-playwright-cli fill e2 "taro@example.com" # メール入力
-playwright-cli select e3 "inquiry"         # セレクトボックス
-playwright-cli check e4                    # チェックボックス
-playwright-cli click e5                    # 送信ボタン
+playwright-cli fill e1 "John Doe"             # text input
+playwright-cli fill e2 "john@example.com"     # email input
+playwright-cli select e3 "inquiry"            # select box
+playwright-cli check e4                       # checkbox
+playwright-cli click e5                       # submit button
 
-playwright-cli snapshot  # 送信後の状態を確認
+playwright-cli snapshot  # confirm state after submission
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/form-submitted.png"
 ```
 
-## ナビゲーションとスクリーンショット
+## Navigation and screenshot
 
 ```bash
 playwright-cli open "$BASE_URL"
@@ -51,7 +51,7 @@ playwright-cli goto "$BASE_URL/dashboard"
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/dashboard.png"
 ```
 
-## 認証済みセッションで操作
+## Operate with an authenticated session
 
 ```bash
 playwright-cli open "$BASE_URL"
@@ -60,44 +60,44 @@ playwright-cli goto "$BASE_URL/protected-page"
 playwright-cli snapshot
 ```
 
-## 要素のテキストを取得
+## Get element text
 
 ```bash
 playwright-cli open "$BASE_URL/page"
-playwright-cli snapshot  # eXX 番号を確認
+playwright-cli snapshot  # find the eXX number
 playwright-cli eval "el => el.textContent" e5
 ```
 
-## ページタイトルの確認
+## Check the page title
 
 ```bash
 playwright-cli open "$BASE_URL"
 playwright-cli eval "document.title"
 ```
 
-## ダイアログ（確認ダイアログ）への対応
+## Handle a confirmation dialog
 
 ```bash
-playwright-cli click e7              # ダイアログを開くボタン
-playwright-cli dialog-accept         # OK をクリック
-# または
-playwright-cli dialog-dismiss        # キャンセルをクリック
+playwright-cli click e7          # button that opens the dialog
+playwright-cli dialog-accept     # click OK
+# or
+playwright-cli dialog-dismiss    # click Cancel
 ```
 
-## 検索フォームで検索して結果をクリック
+## Search and click a result
 
 ```bash
 playwright-cli open "$BASE_URL/search"
 playwright-cli fill e1 "$QUERY"
 playwright-cli press Enter
-playwright-cli snapshot  # 検索結果の eXX 番号を確認
-playwright-cli click e10  # 最初の検索結果をクリック
+playwright-cli snapshot  # find eXX number for the first result
+playwright-cli click e10
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/search-result.png"
 ```
 
-## スクロール
+## Scroll
 
 ```bash
-playwright-cli mousewheel 0 500   # 下にスクロール
-playwright-cli mousewheel 0 -500  # 上にスクロール
+playwright-cli mousewheel 0 500   # scroll down
+playwright-cli mousewheel 0 -500  # scroll up
 ```

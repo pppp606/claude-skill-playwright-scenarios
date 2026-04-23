@@ -1,97 +1,94 @@
-# トラブルシューティング
+# Troubleshooting
 
-保存済みシナリオスクリプトが失敗した場合の診断・修正フロー（Step 2-A-fix）です。
+This is the diagnosis and fix flow (Step 2-A-fix) for when a saved scenario script fails.
 
-UIの変更・URLの変更・フォーム構造の変更などにより、過去のスクリプトが動作しなくなることがあります。
-**スクリプトを削除せず**、現在の状態に合わせて修正してください。
+Scripts may break due to UI changes, URL changes, or form structure changes.
+**Do not delete the script** — update it to match the current state.
 
-## Step 2-A-fix フロー
+## Step 2-A-fix flow
 
-### 1. エラー内容を確認する
+### 1. Identify the error
 
-playwright-cli のエラーメッセージを読み、原因を特定します。
+Read the playwright-cli error message to determine the cause.
 
 ```bash
-# 現在のDOM状態を確認（要素IDの変化を確認）
+# Inspect the current DOM state (check for element ID changes)
 playwright-cli snapshot
 
-# 画面を視覚的に確認
+# Visually confirm the current page
 playwright-cli screenshot --filename=/tmp/playwright-scenarios/debug.png
 ```
 
-### 2. 原因を特定して修正する
+### 2. Locate and fix the issue
 
-スクリプトを削除せず、現在の画面状態に合わせて要素参照・URLを更新します。
-
-```bash
-# スクリプトを編集
-# 変更箇所に以下のコメントを追記する:
-# Updated: <理由（例: ログインボタンのIDがe23→e31に変わった）>
-```
-
-### 3. 修正後に再実行して確認する
+Update the script's element references or URLs to match the current page state.
 
 ```bash
-bash .claude/skills/playwright-scenarios/scenarios/<名前>.sh "$BASE_URL"
+# Edit the script and annotate each changed line:
+# Updated: <reason (e.g. login button ID changed from e23 to e31)>
 ```
 
-成功したら `scenarios/README.md` の説明も必要に応じて更新します。
+### 3. Re-run and confirm
+
+```bash
+bash .claude/skills/playwright-scenarios/scenarios/<name>.sh "$BASE_URL"
+```
+
+If successful, update the description in `scenarios/README.md` if needed.
 
 ---
 
-## よくある失敗パターンと対処
+## Common failure patterns and fixes
 
-### 要素IDが変わった（`fill e19` → `fill e23`）
+### Element ID changed (`fill e19` → `fill e23`)
 
-**症状:** `Error: Element not found: e19` のようなエラー
+**Symptom:** Error like `Error: Element not found: e19`
 
-**対処:**
-1. `playwright-cli snapshot` で現在のDOM状態を確認
-2. 対象フィールドの新しいIDを特定
-3. スクリプトの `eXX` を新しい番号に更新
+**Fix:**
+1. Run `playwright-cli snapshot` to inspect the current DOM
+2. Identify the new ID for the target field
+3. Update the `eXX` references in the script
 
 ```bash
-# 修正例
-# playwright-cli fill e19 "$USERNAME"  # Updated: ID変更 e19→e23
+# playwright-cli fill e19 "$USERNAME"  # Updated: ID changed e19→e23
 playwright-cli fill e23 "$USERNAME"
 ```
 
-### URLが変わった（ルーティング変更）
+### URL changed (routing change)
 
-**症状:** ページが404になる、またはリダイレクトされて操作が失敗する
+**Symptom:** Page returns 404 or redirects unexpectedly, causing actions to fail
 
-**対処:**
-1. `playwright-cli open "$BASE_URL"` で実際のURLを確認
-2. スクリプトのURLパスを更新
+**Fix:**
+1. Open the base URL and check the actual current URL
+2. Update the URL path in the script
 
 ```bash
-# 修正例
-# playwright-cli open "$BASE_URL/login"  # Updated: /login → /auth/login に変更
+# playwright-cli open "$BASE_URL/login"  # Updated: /login → /auth/login
 playwright-cli open "$BASE_URL/auth/login"
 ```
 
-### フォームの構造が変わった（フィールド追加/削除）
+### Form structure changed (fields added or removed)
 
-**症状:** 送信が成功しない、またはバリデーションエラーが出る
+**Symptom:** Submission fails or shows validation errors
 
-**対処:**
-1. `playwright-cli snapshot` で全 `input` 要素を確認
-2. 新しいフィールドへの入力を追加、不要になったフィールドを削除
+**Fix:**
+1. Run `playwright-cli snapshot` to inspect all `input` elements
+2. Add inputs for new fields; remove actions for deleted fields
 
-### ログインフローが変わった（2段階認証追加など）
+### Login flow changed (e.g. 2FA added)
 
-**症状:** ログイン後に追加のステップが現れてセッション保存前に止まる
+**Symptom:** An additional step appears after login before the session can be saved
 
-**対処:**
-1. `playwright-cli snapshot` で追加されたUIを確認
-2. 手動で操作しながら新しいフローをキャプチャ
-3. スクリプトに新しいステップを追加
+**Fix:**
+1. Run `playwright-cli snapshot` to inspect the new UI
+2. Walk through the new flow manually and capture the steps
+3. Add the new steps to the script
 
-### セッションが切れている
+### Session expired
 
-**症状:** 認証済みページにアクセスするとログインページにリダイレクトされる
+**Symptom:** Accessing an authenticated page redirects to the login page
 
-**対処:** ログインシナリオを再実行してセッションを更新する
+**Fix:** Re-run the login scenario to refresh the session:
 
 ```bash
 bash .claude/skills/playwright-scenarios/scenarios/login.sh "$BASE_URL" "$SESSION_FILE"
@@ -99,22 +96,22 @@ bash .claude/skills/playwright-scenarios/scenarios/login.sh "$BASE_URL" "$SESSIO
 
 ---
 
-## デバッグに役立つコマンド
+## Useful debugging commands
 
 ```bash
-# 現在のDOMスナップショットを取得
+# Take a DOM snapshot
 playwright-cli snapshot
 
-# スクリーンショットを撮る
+# Take a screenshot
 playwright-cli screenshot --filename=/tmp/playwright-scenarios/debug.png
 
-# ページのURLとタイトルを確認
+# Check the current URL and page title
 playwright-cli eval "location.href"
 playwright-cli eval "document.title"
 
-# コンソールエラーを確認
+# Check console errors
 playwright-cli console
 
-# ネットワークリクエストを確認
+# Inspect network requests
 playwright-cli network
 ```

@@ -1,24 +1,24 @@
 # claude-skill-playwright-scenarios
 
-playwright-cli を使ったブラウザ操作シナリオを蓄積・再利用するための Claude Code スキルです。
+A Claude Code skill for accumulating and reusing E2E browser automation scenarios with playwright-cli.
 
-## 概要
+## Overview
 
-このスキルを導入すると、Claude Code が playwright-cli を使って操作したブラウザのシナリオをスクリプトとして保存します。同じ操作を再度依頼すると、調査なしでスクリプトをそのまま実行します。
+Once installed, Claude Code saves browser automation scenarios as reusable shell scripts. The next time you request the same operation, Claude runs the saved script directly — no re-investigation needed.
 
-**シナリオは `.claude/skills/playwright-scenarios/scenarios/` に蓄積されます。**
+**Scenarios accumulate in `.claude/skills/playwright-scenarios/scenarios/`.**
 
-## インストール
+## Installation
 
-`.claude/skills/playwright-scenarios/` をプロジェクトのリポジトリにコピーします。
+Copy `.claude/skills/playwright-scenarios/` into your project:
 
 ```bash
 cp -r .claude/skills/playwright-scenarios/ /path/to/your-project/.claude/skills/playwright-scenarios/
 ```
 
-### `settings.json` に allowed-tools を追加
+### Add allowed-tools to settings.json
 
-`.claude/settings.json` または `.claude/settings.local.json` に以下を追加：
+Add the following to `.claude/settings.json` or `.claude/settings.local.json`:
 
 ```json
 {
@@ -31,30 +31,37 @@ cp -r .claude/skills/playwright-scenarios/ /path/to/your-project/.claude/skills/
 }
 ```
 
-## 使い方
+## Usage
 
-スキルをロードしてから自然言語でタスクを伝えるだけです。
+Load the skill and describe your task in natural language:
 
 ```
-/playwright-scenarios ログインページでログインしてセッションを保存してください
-/playwright-scenarios フォームに名前とメールを入力して送信してください
-/playwright-scenarios http://localhost:3000 のトップページをスクリーンショットしてください
+/playwright-scenarios Log in to the app and save the session
+/playwright-scenarios Fill out the contact form and submit it
+/playwright-scenarios Take a screenshot of http://localhost:3000
 ```
 
-## シナリオが蓄積される仕組み
+## How scenario accumulation works
 
-1. タスクを受け取ると、まず `scenarios/README.md` で既存シナリオを検索します
-2. 一致するシナリオがあれば、そのスクリプトをそのまま実行します
-3. なければ playwright-cli で操作を実行し、`scenarios/<名前>.sh` として保存します
-4. `scenarios/README.md` のシナリオ一覧を更新します
+1. When given a task, Claude first checks `scenarios/README.md` for an existing scenario
+2. If a match is found, Claude runs the saved script directly
+3. If no match is found, Claude performs the task with playwright-cli and saves it as `scenarios/<name>.sh`
+4. The scenario list in `scenarios/README.md` is updated automatically
 
-次回同じ操作を依頼すると、ゼロから調査せずにスクリプトを直接実行します。
+The next time you request the same operation, it runs instantly without re-investigation.
 
-## 前提条件
+## Handling broken scripts
 
-- playwright-cli がインストール済み
-- Claude Code CLI
+If a saved script breaks due to UI or routing changes, Claude does **not** delete it.
+Instead, Claude uses `playwright-cli snapshot` to inspect the current state, updates the script to match, and re-runs it.
 
-## ライセンス
+See [references/troubleshooting.md](.claude/skills/playwright-scenarios/references/troubleshooting.md) for details.
+
+## Requirements
+
+- [playwright-cli](https://github.com/microsoft/playwright) installed and available in PATH
+- [Claude Code](https://claude.ai/code) CLI
+
+## License
 
 MIT

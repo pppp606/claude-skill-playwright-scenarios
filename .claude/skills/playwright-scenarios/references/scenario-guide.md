@@ -1,78 +1,78 @@
-# シナリオの書き方ガイド
+# Scenario Writing Guide
 
-## 命名規則
+## Naming convention
 
-`<動詞>-<対象>.sh` の形式で命名する。
+Use the format `<verb>-<target>.sh`.
 
 ```
-login.sh                   # ログイン
-logout.sh                  # ログアウト
-submit-contact-form.sh     # お問い合わせフォームを送信
-follow-user.sh             # ユーザーをフォロー
-search-and-click-result.sh # 検索して結果をクリック
+login.sh                   # log in
+logout.sh                  # log out
+submit-contact-form.sh     # submit a contact form
+follow-user.sh             # follow a user
+search-and-click-result.sh # search and click a result
 ```
 
-## スクリプトテンプレート
+## Script template
 
 ```bash
 #!/bin/bash
-# .claude/skills/playwright-scenarios/scenarios/<名前>.sh
+# .claude/skills/playwright-scenarios/scenarios/<name>.sh
 #
-# 説明: <このスクリプトが何をするか1行で>
+# Description: <one-line description of what this script does>
 #
-# 使い方:
-#   bash <名前>.sh <BASE_URL> [SESSION_FILE]
+# Usage:
+#   bash <name>.sh <BASE_URL> [SESSION_FILE]
 #
-# 例:
-#   bash <名前>.sh http://localhost:3000
-#   bash <名前>.sh http://localhost:3000 /tmp/myapp/session.json
+# Examples:
+#   bash <name>.sh http://localhost:3000
+#   bash <name>.sh http://localhost:3000 /tmp/myapp/session.json
 #
-# 完了後:
-#   <完了後の状態を記述（例: セッションが SESSION_FILE に保存される）>
+# After completion:
+#   <describe the resulting state, e.g. session saved to SESSION_FILE>
 
 set -e
 
-BASE_URL="${1:?BASE_URLを指定してください（例: http://localhost:3000）}"
+BASE_URL="${1:?BASE_URL is required (e.g. http://localhost:3000)}"
 SESSION_FILE="${2:-/tmp/playwright-scenarios/session.json}"
 SCREENSHOT_DIR="/tmp/playwright-scenarios"
 
 mkdir -p "$SCREENSHOT_DIR"
 
-echo "=== <シナリオ名> ==="
+echo "=== <scenario name> ==="
 
-# ここに playwright-cli コマンドを記述
+# playwright-cli commands go here
 playwright-cli open "$BASE_URL"
 playwright-cli snapshot
 
-# ...操作...
+# ...actions...
 
 echo ""
-echo "=== 完了 ==="
+echo "=== Done ==="
 ```
 
-## 引数規則
+## Argument rules
 
-| 引数 | 変数名 | 必須 | 説明 |
-|-----|--------|------|------|
-| 第1引数 | `BASE_URL` | 必須 | アクセス先のベースURL（例: `http://localhost:3000`） |
-| 第2引数 | `SESSION_FILE` | 任意 | セッション保存先（デフォルト: `/tmp/playwright-scenarios/session.json`） |
+| Argument | Variable | Required | Description |
+|----------|----------|----------|-------------|
+| 1st | `BASE_URL` | Yes | Base URL to access (e.g. `http://localhost:3000`) |
+| 2nd | `SESSION_FILE` | No | Session save path (default: `/tmp/playwright-scenarios/session.json`) |
 
-- `BASE_URL` は `:?` でエラーメッセージ付きの必須チェックを行う
-- プロジェクト固有のデフォルトURLを設定してもよい（`${1:-http://localhost:3000}`）
+- Use `:?` for `BASE_URL` to enforce the requirement with an error message
+- A project-specific default URL is allowed (e.g. `${1:-http://localhost:3000}`)
 
-## エラー処理
+## Error handling
 
-- `set -e` を先頭に記述し、playwright-cli コマンドが失敗したらスクリプトを終了させる
-- ユーザー向けのエラーメッセージは `echo "ERROR: ..." >&2` で標準エラーに出力する
+- Add `set -e` at the top so the script exits immediately if a playwright-cli command fails
+- Write user-facing error messages to stderr: `echo "ERROR: ..." >&2`
 
-## シナリオ保存後の手順
+## After saving a scenario
 
-1. 実行可能にする:
+1. Make it executable:
    ```bash
-   chmod +x .claude/skills/playwright-scenarios/scenarios/<名前>.sh
+   chmod +x .claude/skills/playwright-scenarios/scenarios/<name>.sh
    ```
 
-2. `scenarios/README.md` のテーブルに追記する:
+2. Add a row to `scenarios/README.md`:
    ```markdown
-   | <名前>.sh | <説明> | BASE_URL [SESSION_FILE] |
+   | <name>.sh | <description> | BASE_URL [SESSION_FILE] |
    ```
