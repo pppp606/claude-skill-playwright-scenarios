@@ -74,4 +74,5 @@ Details: [Scenario Writing Guide](references/scenario-guide.md)
 - [Scenario Writing Guide](references/scenario-guide.md) — templates, naming conventions, argument rules
 - [Session Management](references/session-management.md) — how to use state-save/state-load
 - [Common Patterns](references/common-patterns.md) — login, form submission, navigation
+- [Request Mocking](references/request-mocking.md) — stubbing external APIs inside scenarios
 - [Troubleshooting](references/troubleshooting.md) — diagnosing and fixing broken scripts
