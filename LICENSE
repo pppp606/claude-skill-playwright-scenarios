@@ -19,12 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-This repository also contains third-party content licensed under different
-terms. See each subdirectory for its own LICENSE/ATTRIBUTION where applicable:
-
-- `.claude/skills/playwright-cli/` — Apache License 2.0, Copyright (c) Microsoft
-  Corporation. See `.claude/skills/playwright-cli/LICENSE` and
-  `.claude/skills/playwright-cli/ATTRIBUTION.md`.

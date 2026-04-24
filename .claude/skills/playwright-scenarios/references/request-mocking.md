@@ -2,8 +2,6 @@
 
 Use request mocking to stub external APIs (payments, geocoding, third-party auth) while exercising real local flows.
 
-For the full playwright-cli reference (URL patterns, all `route` flags, advanced fulfill/abort options), see [../../playwright-cli/references/request-mocking.md](../../playwright-cli/references/request-mocking.md).
-
 ## When to mock (and when not to)
 
 - **Mock**: third-party services you don't control (Stripe, Google Maps, OAuth callbacks), slow or rate-limited endpoints, error states that are hard to reproduce on the live service
@@ -57,7 +55,7 @@ playwright-cli run-code "async page => {
   await page.waitForSelector('.payment-success');
 }"
 
-playwright-cli screenshot --filename=\"$SCREENSHOT_DIR/checkout-mocked.png\"
+playwright-cli screenshot --filename="$SCREENSHOT_DIR/checkout-mocked.png"
 
 echo ''
 echo '=== Done ==='

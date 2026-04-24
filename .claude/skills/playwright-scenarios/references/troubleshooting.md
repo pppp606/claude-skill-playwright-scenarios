@@ -168,8 +168,6 @@ playwright-cli tracing-stop --filename=/tmp/playwright-scenarios/trace.zip
 npx playwright show-trace /tmp/playwright-scenarios/trace.zip
 ```
 
-For the full upstream reference, see [../../playwright-cli/references/tracing.md](../../playwright-cli/references/tracing.md).
-
 ## Video recording (for dynamic issues)
 
 For flash toasts, scroll-triggered layout bugs, or animations that `screenshot` can't capture, record a video:
@@ -179,5 +177,3 @@ playwright-cli video-start
 # ... reproduce the issue ...
 playwright-cli video-stop /tmp/playwright-scenarios/debug.webm
 ```
-
-For the full upstream reference, see [../../playwright-cli/references/video-recording.md](../../playwright-cli/references/video-recording.md).

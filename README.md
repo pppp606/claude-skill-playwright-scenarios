@@ -64,7 +64,4 @@ See [references/troubleshooting.md](.claude/skills/playwright-scenarios/referenc
 
 ## License
 
-- This project's own code and the `.claude/skills/playwright-scenarios/` skill are licensed under the [MIT License](./LICENSE).
-- The `.claude/skills/playwright-cli/` skill is imported from [Microsoft's playwright-cli](https://github.com/microsoft/playwright-cli) and is licensed under the [Apache License 2.0](./.claude/skills/playwright-cli/LICENSE), Copyright © Microsoft Corporation. See [`ATTRIBUTION.md`](./.claude/skills/playwright-cli/ATTRIBUTION.md) for details.
-
-This project is not affiliated with or endorsed by Microsoft or the Playwright project. "Playwright" is a trademark of its respective owner and is used here nominatively to describe the tool this skill builds on.
+MIT — see [LICENSE](./LICENSE).
