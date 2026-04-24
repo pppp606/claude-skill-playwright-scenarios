@@ -162,10 +162,11 @@ playwright-cli tracing-start
 
 # ... run the failing scenario (or just the failing block) ...
 
-playwright-cli tracing-stop --filename=/tmp/playwright-scenarios/trace.zip
+playwright-cli tracing-stop
+# Trace is written under traces/trace-{timestamp}.trace (+ .network, resources/)
 
-# Replay the trace
-npx playwright show-trace /tmp/playwright-scenarios/trace.zip
+# Replay the latest trace
+npx playwright show-trace traces/
 ```
 
 ## Video recording (for dynamic issues)
@@ -173,7 +174,7 @@ npx playwright show-trace /tmp/playwright-scenarios/trace.zip
 For flash toasts, scroll-triggered layout bugs, or animations that `screenshot` can't capture, record a video:
 
 ```bash
-playwright-cli video-start
+playwright-cli video-start /tmp/playwright-scenarios/debug.webm
 # ... reproduce the issue ...
-playwright-cli video-stop /tmp/playwright-scenarios/debug.webm
+playwright-cli video-stop
 ```

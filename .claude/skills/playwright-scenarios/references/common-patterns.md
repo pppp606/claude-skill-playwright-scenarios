@@ -59,7 +59,7 @@ Stub a third-party endpoint before running a real form flow. See [request-mockin
 
 ```bash
 playwright-cli run-code "async page => {
-  // Page-scoped route — cleaned up when the page closes
+  // Route attached to the page object — see request-mocking.md for lifecycle notes
   await page.route('**/api/payments/charge', route => {
     route.fulfill({
       status: 200,

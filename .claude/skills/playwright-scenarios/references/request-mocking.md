@@ -11,8 +11,10 @@ Use request mocking to stub external APIs (payments, geocoding, third-party auth
 
 Inside a scenario script, set up routes with `page.route()` via `run-code` rather than the CLI `playwright-cli route` command:
 
-- `page.route()` is **page-scoped** — it's cleaned up automatically when the page/context closes at the end of the script
-- `playwright-cli route` is **session-scoped** — it persists across subsequent `playwright-cli` calls until `unroute` is run, which leaks into the next scenario in the same browser session
+- `page.route()` keeps the mock inline with the scenario code — the registration is attached to the page object, so it's visible to anyone reading the script and travels with the scenario when copied.
+- `playwright-cli route` is out-of-band session state. It persists across subsequent `playwright-cli` calls until `unroute` is run or the browser is closed, which can leak into the next scenario running against the same browser session.
+
+Either way, routes only fully go away when the browser is closed (`playwright-cli close`). If scenarios share a long-running browser session, call `page.unroute()` at the end of `run-code` or `playwright-cli close` at the end of the script when the mock is no longer needed.
 
 ## Scenario script template
 
@@ -39,7 +41,7 @@ echo "=== <scenario name> ==="
 playwright-cli open "$BASE_URL"
 
 playwright-cli run-code "async page => {
-  // Mock the external API — page-scoped, cleans up on page close
+  // Mock the external API — attached to the page object
   await page.route('**/api/payments/charge', route => {
     route.fulfill({
       status: 200,
