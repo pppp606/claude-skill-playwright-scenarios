@@ -64,4 +64,4 @@ See [references/troubleshooting.md](.claude/skills/playwright-scenarios/referenc
 
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).

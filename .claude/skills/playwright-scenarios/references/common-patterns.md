@@ -53,6 +53,28 @@ playwright-cli run-code "async page => {
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/form-submitted.png"
 ```
 
+## Form submission with a mocked API
+
+Stub a third-party endpoint before running a real form flow. See [request-mocking.md](./request-mocking.md) for the full pattern.
+
+```bash
+playwright-cli run-code "async page => {
+  // Route attached to the page object — see request-mocking.md for lifecycle notes
+  await page.route('**/api/payments/charge', route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ id: 'mock_txn_001', status: 'succeeded' }),
+    });
+  });
+
+  await page.goto('${BASE_URL}/checkout');
+  await page.fill('input[name=card]', '4242424242424242');
+  await page.click('button[type=submit]');
+  await page.waitForSelector('.payment-success');
+}"
+```
+
 ## Navigation and screenshot
 
 ```bash

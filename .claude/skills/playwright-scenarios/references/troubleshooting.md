@@ -152,3 +152,29 @@ playwright-cli console
 # Inspect network requests
 playwright-cli network
 ```
+
+## Tracing (full timeline of actions)
+
+When `snapshot` and `screenshot` don't reveal where a multi-step `run-code` block failed, record a trace: it captures every action, DOM snapshots at each step, and the network timeline, all replayable offline.
+
+```bash
+playwright-cli tracing-start
+
+# ... run the failing scenario (or just the failing block) ...
+
+playwright-cli tracing-stop
+# Trace is written under traces/trace-{timestamp}.trace (+ .network, resources/)
+
+# Replay the latest trace
+npx playwright show-trace traces/
+```
+
+## Video recording (for dynamic issues)
+
+For flash toasts, scroll-triggered layout bugs, or animations that `screenshot` can't capture, record a video:
+
+```bash
+playwright-cli video-start /tmp/playwright-scenarios/debug.webm
+# ... reproduce the issue ...
+playwright-cli video-stop
+```
