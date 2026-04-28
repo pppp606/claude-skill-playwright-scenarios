@@ -1,3 +1,6 @@
 /tmp/
 *.json
 !scenarios/README.md
+
+# Per-machine last-pass anchors used by the intent-detection gate.
+.claude/skills/playwright-scenarios/scenarios/.last-pass/

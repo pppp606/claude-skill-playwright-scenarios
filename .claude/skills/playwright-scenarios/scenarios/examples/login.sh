@@ -6,6 +6,10 @@
 # This is a sample implementation. To use it in your project, copy it to
 # scenarios/ and adjust the selectors and URL path to match your application.
 #
+# Outcome: url=**/ storage=auth_token
+# AppPaths: app/login/, components/auth/
+# TrustLevel: unverified
+#
 # Usage:
 #   bash examples/login.sh <BASE_URL> [SESSION_FILE] [USERNAME] [PASSWORD]
 #
@@ -25,6 +29,9 @@ SESSION_FILE="${2:-/tmp/playwright-scenarios/session.json}"
 USERNAME="${3:-}"
 PASSWORD="${4:-}"
 SCREENSHOT_DIR="/tmp/playwright-scenarios"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LAST_PASS_DIR="$SCRIPT_DIR/../.last-pass"
+SCENARIO_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
 
 mkdir -p "$SCREENSHOT_DIR"
 mkdir -p "$(dirname "$SESSION_FILE")"
@@ -59,6 +66,18 @@ playwright-cli run-code "async page => {
 }"
 
 playwright-cli screenshot --filename="$SCREENSHOT_DIR/login-result.png"
+
+# Verify the declared outcome and record last-pass on success.
+bash "$SCRIPT_DIR/../../references/assert-outcome.sh" "${BASH_SOURCE[0]}"
+
+mkdir -p "$LAST_PASS_DIR"
+TMP=$(mktemp "$LAST_PASS_DIR/.${SCENARIO_NAME}.XXXXXX")
+printf '{"sha":"%s","at":"%s","branch":"%s"}\n' \
+  "$(git rev-parse HEAD 2>/dev/null || echo unknown)" \
+  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+  "$(git branch --show-current 2>/dev/null || echo unknown)" \
+  > "$TMP"
+mv "$TMP" "$LAST_PASS_DIR/$SCENARIO_NAME.json"
 
 echo ""
 echo "=== Done ==="

@@ -34,17 +34,33 @@ If an error occurs during execution, proceed to **Step 2-A-fix**.
 
 ### Step 2-A-fix: Script failed (handling implementation changes)
 
-Past scripts may break due to UI changes, URL changes, or form structure changes.
-**Do not delete the script** — update it to match the current state.
+Past scripts may break due to two very different causes, and the response must
+differ:
+
+- **Intentional app change** (UI redesign, route rename, field renamed): the
+  scenario is stale and should be auto-fixed.
+- **Regression / side effect** (an unrelated change broke the feature, JS error,
+  500 response, lockfile bump): the scenario is **correct**, the app is broken.
+  Auto-fixing the scenario here would silently hide the bug.
+
+**Always run the [intent check](references/intent-detection.md) before editing
+the scenario.** It produces one of four verdicts:
+
+| Verdict | Action |
+|---|---|
+| `INTENTIONAL` | Proceed with the fix flow below. |
+| `REGRESSION SUSPECTED` | **Do not modify the script.** Report the suspect commits to the user and stop. |
+| `ENVIRONMENTAL` | **Do not modify the script.** Report as likely env/data issue. |
+| `UNVERIFIED` | Ask the user before auto-fixing. |
 
 Detailed diagnosis and fix steps: [references/troubleshooting.md](references/troubleshooting.md)
 
-**Basic flow:**
+**Fix flow (only when verdict is `INTENTIONAL`):**
 1. Run `playwright-cli snapshot` to inspect the current DOM state
 2. Run `playwright-cli screenshot` to visually confirm the current page
 3. Identify the changes and update `.claude/skills/playwright-scenarios/scenarios/<name>.sh`
-4. Add a comment `# Updated: <reason>` at each changed line
-5. Re-run the script and confirm it succeeds
+4. Add a comment `# Updated: <reason> (per <SHA>: "<msg>")` at each changed line, citing the commit the intent check matched
+5. Re-run the script. The tail will run [assert-outcome.sh](references/assert-outcome.sh) — if the declared `# Outcome:` no longer holds, escalate to the user even though the intent check said `INTENTIONAL`.
 
 ### Step 2-B: No scenario found
 
@@ -72,6 +88,7 @@ Details: [Scenario Writing Guide](references/scenario-guide.md)
 ## References
 
 - [Scenario Writing Guide](references/scenario-guide.md) — templates, naming conventions, argument rules
+- [Intent Detection](references/intent-detection.md) — gate that decides whether a failed scenario is auto-fixable or a likely regression
 - [Session Management](references/session-management.md) — how to use state-save/state-load
 - [Common Patterns](references/common-patterns.md) — login, form submission, navigation
 - [Request Mocking](references/request-mocking.md) — stubbing external APIs inside scenarios
