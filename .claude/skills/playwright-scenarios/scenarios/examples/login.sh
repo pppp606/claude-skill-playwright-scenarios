@@ -6,6 +6,12 @@
 # This is a sample implementation. To use it in your project, copy it to
 # scenarios/ and adjust the selectors and URL path to match your application.
 #
+# NOTE: this script lives at scenarios/examples/login.sh, so the two paths
+# below (LAST_PASS_DIR and the assert-outcome.sh invocation) walk up one
+# extra level. If you copy this file to scenarios/login.sh, change them to:
+#   LAST_PASS_DIR="$SCRIPT_DIR/.last-pass"
+#   bash "$SCRIPT_DIR/../references/assert-outcome.sh" "${BASH_SOURCE[0]}"
+#
 # Outcome: url=**/ storage=auth_token
 # AppPaths: app/login/, components/auth/
 # TrustLevel: unverified

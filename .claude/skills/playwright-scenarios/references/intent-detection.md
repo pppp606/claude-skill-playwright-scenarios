@@ -6,6 +6,12 @@ silently rewrites the scenario to match broken app behavior — this hides bugs.
 
 This file defines the gate that runs **before** any fix in [troubleshooting.md](./troubleshooting.md).
 
+## Dependencies
+
+- `git` — required.
+- `playwright-cli` — required for Step 0 (runtime sanity).
+- `jq` — optional; [detect-intent.sh](./detect-intent.sh) reads `.last-pass/<name>.json` via `jq` when available and falls back to a small awk parser otherwise.
+
 ## Outcomes of the gate
 
 | Verdict | Meaning | Action |
@@ -50,42 +56,38 @@ playwright-cli network | grep -E ' (5[0-9]{2}) '
 Re-run the scenario once. If it passes on retry, treat as flake. Update last-pass
 and proceed normally. Only failures that reproduce on retry continue to Step 2.
 
-### Step 2 — Self-edit check
+### Steps 2 & 3 — Self-edit check + anchor resolution (deterministic)
 
-If the scenario script itself was edited since the last-pass anchor, the anchor
-is meaningless (the user may have already adjusted the scenario by hand).
-
-```bash
-git log <last-pass-sha>..HEAD -- .claude/skills/playwright-scenarios/scenarios/<name>.sh
-```
-
-→ If non-empty: Verdict: `UNVERIFIED`. Ask the user.
-
-### Step 3 — Resolve the last-pass anchor
+These two steps are encapsulated in [detect-intent.sh](./detect-intent.sh). Run:
 
 ```bash
-SHA=$(jq -r .sha scenarios/.last-pass/<name>.json)
-AT=$(jq -r .at  scenarios/.last-pass/<name>.json)
-BRANCH=$(jq -r .branch scenarios/.last-pass/<name>.json)
+bash .claude/skills/playwright-scenarios/references/detect-intent.sh \
+  .claude/skills/playwright-scenarios/scenarios/<name>.sh
 ```
 
-Validate the anchor:
+The helper exits **3** with `VERDICT=UNVERIFIED` when:
 
-```bash
-# Is the SHA still reachable from HEAD?
-if git merge-base --is-ancestor "$SHA" HEAD 2>/dev/null; then
-  ANCHOR="$SHA"
-elif [ -n "$BRANCH" ] && [ "$BRANCH" != "$(git branch --show-current)" ]; then
-  # Branch switch: walk from the merge-base of the two branches
-  ANCHOR=$(git merge-base "$BRANCH" HEAD)
-else
-  # Rebase/squash invalidated SHA — fall back to timestamp
-  ANCHOR=$(git log --since="$AT" --reverse --format=%H | head -1)^ 2>/dev/null || ANCHOR=""
-fi
+- the `.last-pass/<name>.json` file is missing (`REASON=no-last-pass-anchor`)
+- the scenario was edited since the anchor (`REASON=scenario-edited-since-anchor`)
+- the anchor SHA is unreachable and no branch / timestamp fallback resolves
+  (`REASON=anchor-unreachable`)
+
+Stop and ask the user when this happens.
+
+On success the helper exits **0** and prints a key=value report:
+
+```
+SCENARIO=<name>
+ANCHOR=<sha>
+ANCHOR_SOURCE=sha|merge-base|timestamp-parent
+APP_REPO=<resolved app repo path>
+APP_PATHS=<comma-separated paths from header, may be empty>
+LAST_PASS_SHA=<sha>
+LAST_PASS_AT=<iso-8601>
+LAST_PASS_BRANCH=<branch>
 ```
 
-If `ANCHOR` is empty or the file `scenarios/.last-pass/<name>.json` is missing:
-→ Verdict: `UNVERIFIED`. Ask the user.
+Use `ANCHOR` and `APP_REPO` for the pickaxe search in Step 4.
 
 ### Step 4 — Pickaxe with multiple tokens (OR, not AND)
 
@@ -118,17 +120,24 @@ OR the hits together. Any commit appearing for any token is a candidate.
   → Verdict: `INTENTIONAL`. Auto-fix. Annotate each change with the matching
   commit's SHA + first-line message.
 
-- **No artifact hit, but app changed**: no token matched, but `<AppPaths>` plus
-  lockfiles (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Gemfile.lock`,
-  `Cargo.lock`, `go.sum`, etc.) or root-level config (`next.config.*`,
-  `tsconfig.json`, `vite.config.*`, `middleware.*`, `.env*`) changed since
-  anchor.
-  → Verdict: `REGRESSION SUSPECTED`. Do **not** modify the scenario. Report:
+- **No artifact hit, but app changed**: no token matched. Inspect `<ANCHOR..HEAD>`
+  for changes outside the artifact tokens. Classify into one of three
+  sub-categories — they all yield `REGRESSION SUSPECTED` but the report names
+  the most likely cause so the user knows where to look first:
+
+  | Sub-category | Triggered by | Report tag |
+  |---|---|---|
+  | `lockfile-only` | Only lockfiles changed (`package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`, `Gemfile.lock`, `Cargo.lock`, `go.sum`, …) | `(cause: dependency bump)` |
+  | `config-only` | Only root-level config changed (`next.config.*`, `tsconfig.json`, `vite.config.*`, `middleware.*`, `.env*`) and no source files | `(cause: build/runtime config)` |
+  | `unrelated-app-paths` | Source files inside `<AppPaths>` changed but no token matched | `(cause: side effect of nearby change)` |
+
+  Verdict in all three cases: `REGRESSION SUSPECTED`. Do **not** modify the
+  scenario. Report template:
 
   ```
-  Scenario "<name>" failed. The failing form/route was not directly modified
-  since the last successful run, but these commits may have caused a side
-  effect:
+  Scenario "<name>" failed. (cause: <tag>)
+  The failing form/route was not directly modified since the last successful
+  run, but these commits may have caused a side effect:
     abc1234  chore(deps): bump react to 19.2
     def5678  refactor: extract auth context
   Treat as a regression and investigate before re-running.
@@ -156,6 +165,16 @@ artifact tokens). Bias direction:
 
 Never gate on prefix alone — repos that don't use Conventional Commits get
 reasonable behavior because the prefix only acts as a tiebreaker.
+
+**Worked example.** Pickaxe found one candidate commit
+`feat(auth): rename email field` (`a1b2c3d`). The diff touches
+`app/login/LoginForm.tsx` (an `AppPaths` entry) but the rename happened on a
+React prop name, so the literal token `name=.?email` did **not** match the
+patch. Step 5 alone would land on `REGRESSION SUSPECTED` (changes inside
+`AppPaths`, no artifact hit). The `feat:` prefix adds a +1 bias toward
+`INTENTIONAL`, so the gate flips to `INTENTIONAL` and proceeds with the
+auto-fix, citing `a1b2c3d` in the `# Updated:` comment. Without the bias the
+same change would surface to the user as a suspected regression.
 
 ### Step 7 — Outcome verification (post-fix only)
 

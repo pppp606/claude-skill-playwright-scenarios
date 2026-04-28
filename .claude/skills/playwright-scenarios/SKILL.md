@@ -44,7 +44,16 @@ differ:
   Auto-fixing the scenario here would silently hide the bug.
 
 **Always run the [intent check](references/intent-detection.md) before editing
-the scenario.** It produces one of four verdicts:
+the scenario.** Start with the deterministic helper:
+
+```bash
+bash .claude/skills/playwright-scenarios/references/detect-intent.sh \
+  .claude/skills/playwright-scenarios/scenarios/<name>.sh
+```
+
+Then combine its output with Step 0 (runtime sanity), the pickaxe search,
+classification, and bias rules in [intent-detection.md](references/intent-detection.md)
+to land on one of four verdicts:
 
 | Verdict | Action |
 |---|---|

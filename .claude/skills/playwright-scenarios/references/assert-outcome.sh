@@ -8,11 +8,14 @@
 # Exits 0 when every assertion passes, non-zero otherwise.
 #
 # Supported keys (space-separated on the # Outcome: line):
-#   url=<glob>            page.url() must match the glob
+#   url=<glob>            page.url() must match the glob (Playwright glob:
+#                         ** any chars incl. /, * any chars excl. /, ? one char)
 #   text="<literal>"      the literal text must be visible on the page
 #   storage=<key>         localStorage must contain <key> with a non-empty value
 #
 # Quote text values with double quotes if they contain spaces.
+# Unknown keys are logged as a warning and skipped — additions to this DSL
+# are intended to be additive and won't break existing scenarios.
 #
 # Usage:
 #   bash assert-outcome.sh <scenario.sh>
@@ -21,6 +24,10 @@
 #   # Outcome: url=**/dashboard text="Welcome" storage=auth_token
 
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib-outcome.sh
+source "$SCRIPT_DIR/lib-outcome.sh"
 
 SCENARIO="${1:?scenario script path required}"
 
@@ -54,6 +61,19 @@ fi
 
 FAILED=0
 
+# Wrap a JS expression so the result is emitted on a sentinel-prefixed line.
+# This shields callers from playwright-cli warnings or deprecation notices
+# that would otherwise be picked up by a naive `tail -1`.
+run_js() {
+  local body="$1"
+  playwright-cli run-code "async page => {
+    let __r;
+    try { __r = await (async () => { $body })(); }
+    catch (e) { __r = false; }
+    console.log('__OUTCOME_RESULT__:' + JSON.stringify(__r));
+  }" 2>/dev/null | extract_sentinel
+}
+
 for assertion in "${ASSERTIONS[@]}"; do
   KEY="${assertion%%=*}"
   VAL="${assertion#*=}"
@@ -63,27 +83,28 @@ for assertion in "${ASSERTIONS[@]}"; do
 
   case "$KEY" in
     url)
-      ACTUAL=$(playwright-cli run-code "async page => { return page.url(); }" 2>/dev/null | tail -1)
-      if ! printf '%s' "$ACTUAL" | grep -qE "$(printf '%s' "$VAL" | sed -e 's|\*\*|.*|g' -e 's|\*|[^/]*|g')"; then
-        echo "FAIL url: expected '$VAL', got '$ACTUAL'" >&2
+      RE=$(glob_to_regex "$VAL")
+      ACTUAL=$(run_js "return page.url();")
+      # ACTUAL arrives JSON-encoded (a quoted string); strip the outer quotes
+      # before regex comparison.
+      ACTUAL="${ACTUAL%\"}"
+      ACTUAL="${ACTUAL#\"}"
+      if ! printf '%s' "$ACTUAL" | grep -qE "$RE"; then
+        echo "FAIL url: expected glob '$VAL' (regex $RE), got '$ACTUAL'" >&2
         FAILED=1
       fi
       ;;
     text)
-      VISIBLE=$(playwright-cli run-code "async page => {
-        try { return await page.getByText('${VAL//\'/\\\'}').first().isVisible(); }
-        catch (e) { return false; }
-      }" 2>/dev/null | tail -1)
+      JSVAL=$(js_string "$VAL")
+      VISIBLE=$(run_js "return await page.getByText($JSVAL).first().isVisible();")
       if [ "$VISIBLE" != "true" ]; then
         echo "FAIL text: '$VAL' not visible on page" >&2
         FAILED=1
       fi
       ;;
     storage)
-      PRESENT=$(playwright-cli run-code "async page => {
-        const v = await page.evaluate(k => localStorage.getItem(k), '${VAL//\'/\\\'}');
-        return v != null && v !== '';
-      }" 2>/dev/null | tail -1)
+      JSVAL=$(js_string "$VAL")
+      PRESENT=$(run_js "const v = await page.evaluate(k => localStorage.getItem(k), $JSVAL); return v != null && v !== '';")
       if [ "$PRESENT" != "true" ]; then
         echo "FAIL storage: localStorage['$VAL'] missing or empty" >&2
         FAILED=1

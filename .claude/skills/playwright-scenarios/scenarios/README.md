@@ -22,6 +22,9 @@ Each successful run writes a per-machine anchor to `.last-pass/<name>.json`
 (gitignored). The auto-fix gate uses this anchor to decide whether a later
 failure is intentional drift or a regression. See [Intent Detection](../references/intent-detection.md).
 
+If you adopt this skill into another repo, add the same path to that repo's
+`.gitignore` — the skill's own `.gitignore` only covers this repository.
+
 ## Chaining scenarios with a session
 
 For scenarios that require authentication, save the session with a login scenario first:

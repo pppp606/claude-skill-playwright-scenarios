@@ -124,7 +124,7 @@ Every scenario declares a small header that the auto-fix gate consumes:
 
 | Header | Required | Meaning |
 |---|---|---|
-| `# Outcome:` | yes | Success conditions verified by [assert-outcome.sh](./assert-outcome.sh). Keys: `url=<glob>`, `text="<literal>"`, `storage=<key>`. |
+| `# Outcome:` | yes | Success conditions verified by [assert-outcome.sh](./assert-outcome.sh). Currently supports `url=<glob>`, `text="<literal>"`, `storage=<key>`. Unknown keys log a `WARN` and are skipped — additions to this DSL are intended to be additive and won't break existing scenarios. |
 | `# AppPaths:` | recommended | Comma-separated paths used to narrow the git-log search when classifying failures. If omitted, the gate searches the whole repo minus `scenarios/`, `tests/`, `.claude/`. |
 | `# AppRepo:` | optional | Absolute path to the app repo when scenarios live outside it. Falls back to `APP_REPO_PATH` env, then the current repo. |
 | `# TrustLevel: unverified` | starting state | Set on a new scenario; remove (or leave — it's informational) once the first successful run writes a `last-pass` anchor. |
@@ -139,6 +139,11 @@ The tail of the template writes `scenarios/.last-pass/<name>.json` on success.
 This file is the reference point used by the auto-fix gate to decide whether a
 later failure is INTENTIONAL, REGRESSION SUSPECTED, or ENVIRONMENTAL. It is
 gitignored — last-pass is per-machine state, not shared across the team.
+
+> **Adopting this skill in another repo?** The skill's own `.gitignore` only
+> covers this repository. In your project, add the path
+> `.claude/skills/playwright-scenarios/scenarios/.last-pass/` to your repo's
+> `.gitignore` so anchors stay out of source control.
 
 ## After saving a scenario
 
