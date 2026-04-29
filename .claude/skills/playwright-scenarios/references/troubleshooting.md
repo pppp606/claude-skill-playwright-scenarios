@@ -5,6 +5,13 @@ This is the diagnosis and fix flow (Step 2-A-fix) for when a saved scenario scri
 Scripts may break due to UI changes, URL changes, or form structure changes.
 **Do not delete the script** — update it to match the current state.
 
+> **Before applying any fix below, run the [intent check](./intent-detection.md).**
+> The patterns in this file assume the failure is intentional drift in the app
+> (selector renamed, route renamed, etc.). If the intent check returns
+> `REGRESSION SUSPECTED` or `ENVIRONMENTAL`, **do not modify the scenario** —
+> rewriting it to match broken behavior hides the underlying bug. Only proceed
+> with the fixes below when the verdict is `INTENTIONAL`.
+
 ## Step 2-A-fix flow
 
 ### 1. Identify the error
