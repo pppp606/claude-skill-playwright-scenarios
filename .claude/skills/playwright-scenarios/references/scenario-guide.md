@@ -5,12 +5,69 @@
 Use the format `<verb>-<target>.sh`.
 
 ```
-login.sh                   # log in
-logout.sh                  # log out
-submit-contact-form.sh     # submit a contact form
-follow-user.sh             # follow a user
-search-and-click-result.sh # search and click a result
+login.sh                    # session creation prefix
+logout.sh                   # log out
+goto-user-profile.sh        # navigation prefix to a stable URL
+open-post-create-dialog.sh  # multi-step navigation prefix (clicks + dialog)
+seed-test-post.sh           # data preparation prefix
+submit-contact-form.sh      # full reusable action
+follow-user.sh              # full reusable action
+search-and-click-result.sh  # full reusable action
 ```
+
+Prefer the prefix categories `login-*` / `goto-*` / `open-*` / `seed-*` whenever the scenario is meant to be reused as a setup for further work — see [Scenario granularity](#scenario-granularity).
+
+## Scenario granularity
+
+This skill saves **reusable prefixes**, not full tasks. See [SKILL.md → Scenario granularity](../SKILL.md#scenario-granularity) for the high-level rule. This section gives concrete patterns.
+
+### What to save
+
+The portion of a task that any future caller would replay verbatim:
+
+| Pattern | Example name | Ends when |
+|---|---|---|
+| Session creation | `login.sh` | `session.json` saved, redirected to landing page |
+| Navigation to a stable URL | `goto-user-profile.sh` | Page rendered, data loaded |
+| Multi-step navigation (clicks, dialogs) | `open-post-create-dialog.sh` | Dialog visible with form values populated |
+| Data preparation via the app | `seed-test-post.sh` | Entity created, ID printed for downstream use |
+
+### What NOT to save
+
+| Anti-pattern | Why not |
+|---|---|
+| `verify-pr-123-button.sh` | One PR's verification has no future caller. |
+| `test-edge-case.sh` | Assertions belong to a test framework, not this skill. |
+| `full-flow-from-login-to-submit.sh` | Bundles a reusable prefix with a task-specific tail. Split into `login.sh` + inline tail. |
+
+### Composition
+
+A downstream prefix chains an upstream one instead of duplicating it:
+
+```bash
+#!/bin/bash
+set -e
+BASE_URL="${1:?BASE_URL is required}"
+SESSION_FILE="${2:-/tmp/playwright-scenarios/session.json}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Reuse the login prefix
+bash "$SCRIPT_DIR/login.sh" "$BASE_URL" "$SESSION_FILE"
+
+# Continue this scenario's own prefix
+playwright-cli run-code "async page => {
+  await page.goto('${BASE_URL}/posts/123');
+  await page.waitForSelector('[data-testid=post-content]');
+}"
+```
+
+### Boundary decision in one question
+
+> "If a teammate asked Claude to do this exact operation a month from now, would they get value from replaying this script?"
+
+- **Yes** → save the prefix that satisfies the operation.
+- **No** → don't save.
+- **Partly** (only the first half is replayable) → save only the first half; do the rest inline.
 
 ## Script template
 
