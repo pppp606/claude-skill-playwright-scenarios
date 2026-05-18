@@ -73,12 +73,44 @@ Detailed diagnosis and fix steps: [references/troubleshooting.md](references/tro
 
 ### Step 2-B: No scenario found
 
-Execute the task with playwright-cli while simultaneously creating a script:
+Execute the task with playwright-cli. Then decide **what (if anything) to save** — see [Scenario granularity](#scenario-granularity) below.
 
 1. Perform the task using playwright-cli
-2. Save the script as `scenarios/<verb>-<target>.sh` (see [Scenario Writing Guide](references/scenario-guide.md))
-3. Make it executable: `chmod +x .claude/skills/playwright-scenarios/scenarios/<name>.sh`
-4. Update the scenario list table in `scenarios/README.md`
+2. **Identify the reusable boundary.** Save only the prefix that a future task would replay verbatim. If nothing in the task is reusable (one-off bug repro, PR-specific verification, exploratory inspection), **skip saving entirely** — go to step 6.
+3. Save the reusable prefix as `scenarios/<verb>-<target>.sh` (see [Scenario Writing Guide](references/scenario-guide.md))
+4. Make it executable: `chmod +x .claude/skills/playwright-scenarios/scenarios/<name>.sh`
+5. Update the scenario list table in `scenarios/README.md`
+6. Continue with the task-specific tail using `playwright-cli` directly. Do not save the tail.
+
+## Scenario granularity
+
+A scenario covers **a reusable operation**, not "everything done this session." Most tasks split:
+
+```
+[ reusable prefix ]  →  [ task-specific tail ]
+ login / navigate /      verification clicks,
+ seed / open page        task-specific assertions,
+                         exploratory inspection
+```
+
+**Save the prefix. Discard the tail.** The prefix ends the moment the page/data is ready for inspection — before any task-specific clicking or assertion. A good prefix scenario terminates with a screenshot and a `# Outcome:` that matches the resulting URL/state.
+
+**When nothing is reusable**, skip saving. A non-replayable scenario only adds noise to `scenarios/README.md`.
+
+**Compose, don't duplicate.** A new prefix scenario can chain an earlier one as its first step (`bash login.sh "$BASE_URL" "$SESSION_FILE"`) instead of re-implementing it.
+
+**Naming hints for prefix scenarios:**
+
+| Prefix | Use for | Example |
+|---|---|---|
+| `login-*` / `login.sh` | Session creation | `login.sh` |
+| `goto-*` | Navigation to a stable URL | `goto-user-profile.sh` |
+| `open-*` | Multi-step navigation (clicks, dialogs) | `open-post-create-dialog.sh` |
+| `seed-*` | Data preparation via the app | `seed-test-post.sh` |
+
+Avoid `verify-*` / `test-*` / `check-*` — these imply assertions, which belong to the task tail.
+
+See [Scenario Writing Guide → Scenario granularity](references/scenario-guide.md#scenario-granularity) for what-to-save / what-not-to-save tables and a composition example.
 
 ## Script writing rules
 
